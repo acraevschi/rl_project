@@ -641,20 +641,17 @@ class INPUT(ctypes.Structure):
 
 
 # # example:
-# if __name__ == "__main__":
-#     sleep(3)
-#     keys = Keys()
-
-#     # mouse movement
-#     for i in range(100):
-#         radius = 10
-#         steps = 100
-#         for i in range(steps):
-#             angle = 2 * math.pi * i / steps
-#             dx = int(radius * math.cos(angle))
-#             dy = int(radius * math.sin(angle))
-#             keys.directMouse(dx, dy)
-#             sleep(0.01)
+# # mouse movement
+# keys = Keys()
+# for i in range(5):
+#     radius = 10
+#     steps = 100
+#     for i in range(steps):
+#         angle = 2 * math.pi * i / steps
+#         dx = int(radius * math.cos(angle))
+#         dy = int(radius * math.sin(angle))
+#         keys.directMouse(dx, dy)
+#         sleep(0.01)
 
 # # mouse keys
 # keys.directMouse(buttons=keys.mouse_rb_press)
