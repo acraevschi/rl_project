@@ -105,19 +105,20 @@ class SimpleCNN(nn.Module):
         return x
 
 
-# Instantiate and evaluate the optimized CNN model
-model = SimpleCNN(num_actions=10).eval()
-
+model = SimpleCNN(num_actions=10).to("cuda" if torch.cuda.is_available() else "cpu").eval()
 
 # Forward pass through the model
 def process_image(img):
+    # img.to("cuda" if torch.cuda.is_available() else "cpu")
+    model.to("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
         output = model(img)
 
     # For visualization, convert output tensor back to NumPy (if needed)
-    output_np = output.squeeze(0).cpu().numpy()
+    output_np = output.squeeze(0).numpy().to("cpu")
     return output_np
 
+# Instantiate and evaluate the optimized CNN model
 
 def grab_screen(p_input):
     while True:
@@ -141,7 +142,7 @@ def model_processing(p_output):
     while True:
         # Receive image from pipe
         img = p_output.recv()
-
+        img.to("cuda" if torch.cuda.is_available() else "cpu")
         # Measure the start time
         start_time = time.time()
 
