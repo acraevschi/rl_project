@@ -61,19 +61,24 @@ def grab_screen():
 
 import matplotlib.pyplot as plt
 
-time.sleep(1.5)
+MONITOR_CONFIG = {"top": 0, "left": 0, "width": 2560, "height": 1440}
+
+time.sleep(3)
 # coordinates: (x1, y1, x2, y2); нужо правее и ниже (потом отдельно для населения)
 HAPPY_BAR = (
-    1200,
-    -73,
-    1550,
-    -53,
+    1240,
+    -40,
+    1525,
+    -5,
 )  # Adjust these based on the position of the health bar in the screenshot
 
 sct = mss.mss()  # Create mss instance inside the process
 # while True:
 # Capture the full screen or specified monitor region
 img = np.array(sct.grab(MONITOR_CONFIG))
+img = cv2.resize(
+        img, (1920, 1080)
+    )
 # height, width, _ = img.shape
 happy_bar = img[
     HAPPY_BAR[1] : HAPPY_BAR[3],
@@ -81,6 +86,62 @@ happy_bar = img[
 ]
 
 plt.imshow(cv2.cvtColor(happy_bar, cv2.COLOR_BGR2RGB))
+plt.title("")
+plt.axis("off")
+plt.show()
+
+
+####### ECONOMY BAR
+
+time.sleep(1.5)
+# coordinates: (x1, y1, x2, y2); нужо правее и ниже (потом отдельно для населения)
+ECON_BAR = (
+    960,
+    -40,
+    1215,
+    -5,
+)  # Adjust these based on the position of the health bar in the screenshot
+
+sct = mss.mss()  # Create mss instance inside the process
+# while True:
+# Capture the full screen or specified monitor region
+img = np.array(sct.grab(MONITOR_CONFIG))
+# height, width, _ = img.shape
+econ_bar = img[
+    ECON_BAR[1] : ECON_BAR[3],
+    ECON_BAR[0] : ECON_BAR[2],
+]
+
+plt.imshow(cv2.cvtColor(econ_bar, cv2.COLOR_BGR2RGB))
 plt.title("Reward info")
 plt.axis("off")
 plt.show()
+
+#######################
+
+possible_states = ["very_unhappy", "unhappy", "satisfied", "happy", "very_happy"]
+for state in possible_states:
+    happy = cv2.imread("reward/happiness_levels/happy.png", cv2.IMREAD_UNCHANGED)
+    current_state = cv2.imread("reward/scrns_test/citizen_happy.png", cv2.IMREAD_UNCHANGED)
+
+    match = cv2.matchTemplate(current_state, happy, cv2.TM_CCOEFF_NORMED)
+
+    # Get the best match position
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
+
+    # Define a threshold for a good match
+    threshold = 0.7
+
+    if max_val >= threshold:
+        print("Match found with confidence:", max_val)
+        top_left = max_loc
+        bottom_right = (top_left[0] + happy.shape[1], top_left[1] + happy.shape[0])
+        cv2.rectangle(current_state, top_left, bottom_right, (0, 255, 0), 2)
+        plt.imshow(cv2.cvtColor(current_state, cv2.COLOR_BGR2RGB))
+        plt.title("Match found")
+        plt.axis("off")
+        plt.show()
+    else:
+        print("No match found. Confidence:", max_val)
+
+

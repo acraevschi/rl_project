@@ -9,7 +9,7 @@ def image_crop(img, crop_dims):
 def process_image(model, img):
     with torch.no_grad():
         output = model(img)
-        return output.squeeze(0).cpu().numpy()
+    return output.squeeze(0).cpu().numpy()
 
 
 def process_stream(p_output, model, print_fps=False):
@@ -17,19 +17,16 @@ def process_stream(p_output, model, print_fps=False):
         f = open("fps.txt", "w")
     while True:
         # Receive the tuple (img_tensor, health_percentage)
-        img, health = p_output.recv()
+        img = p_output.recv()
         start_time = time.time() if print_fps else None
 
         # Process the image using the model
         processed_img = process_image(model, img)
 
-        # Use health_percentage (e.g., log or integrate into reward system)
-        print(f"Health: {health:.2f}")
-
         if print_fps:
             end_time = time.time()
             time_taken = end_time - start_time
-            fps = 1 / time_taken
+            fps = 1 / time_taken if time_taken > 0 else 1 / 0.001
 
             # Print FPS to the file
             print(f"Frames per second (FPS): {fps:.2f}", file=f)

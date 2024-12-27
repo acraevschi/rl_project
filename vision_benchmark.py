@@ -13,14 +13,17 @@ import torch.optim as optim
 # Set up the screen capture area (adjust as needed)
 original_resolution = (1920, 1080)
 width, height = original_resolution
-monitor = {"top": 0, "left": 0, "width": width, "height": height}
+monitor = {"top": 0, "left": 0, "width": 1920, "height": 1080}
 
 # Initialize mss for screen capture
 sct = mss.mss()
 
-rescaled_width = int(width / 6)
-rescaled_height = int(height / 6)
+rescaled_width = 640
+rescaled_height = 360
 
+# Function to count the number of parameters in the model
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def compute_dims(dims, kernel_size, stride):
     width = dims[0]
@@ -29,64 +32,41 @@ def compute_dims(dims, kernel_size, stride):
     new_height = (height - kernel_size) // stride + 1
     return int(new_width), int(new_height)
 
-
 class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-
-        # Depthwise convolution (groups=in_channels)
-        self.conv1 = nn.Conv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels
-        )
-        self.pointwise = nn.Conv2d(
-            in_channels, out_channels, kernel_size=1
-        )  # Pointwise conv to change channels
+        self.conv1 = nn.Conv2d(in_channels, in_channels, 3, padding=1, groups=in_channels, bias=True)
+        self.pointwise = nn.Conv2d(in_channels, out_channels, 1, bias=True)
         self.bn1 = nn.GroupNorm(4, out_channels)
 
-        # Another depthwise + pointwise combination
-        self.conv2 = nn.Conv2d(
-            out_channels, out_channels, kernel_size=3, padding=1, groups=out_channels
-        )
+        self.conv2 = nn.Conv2d(out_channels, out_channels, 3, padding=1, groups=out_channels, bias=True)
         self.bn2 = nn.GroupNorm(4, out_channels)
 
-        # Skip connection (only applies if the number of channels changes)
-        self.skip = nn.Sequential()
-        if in_channels != out_channels:
-            self.skip = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.skip = nn.Conv2d(in_channels, out_channels, 1, bias=True) if in_channels != out_channels else nn.Sequential()
 
     def forward(self, x):
         residual = self.skip(x)
-
-        # Apply depthwise and pointwise convolutions
         out = torch.relu(self.bn1(self.pointwise(self.conv1(x))))
         out = self.bn2(self.conv2(out))
-
-        # Add residual connection
         out += residual
         return torch.relu(out)
 
-
 class SimpleCNN(nn.Module):
-    def __init__(self, num_actions):
+    def __init__(self):
         super().__init__()
+        self.conv1 = nn.Conv2d(3, 32, 7, stride=2, padding=3)
+        self.bn1 = nn.GroupNorm(4, 32)
+        self.maxpool1 = nn.MaxPool2d(2)
 
-        # Initial convolution with a larger kernel for downsampling
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=7, stride=2, padding=3)
-        self.bn1 = nn.GroupNorm(4, 16)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=2)
+        self.res1 = ResBlock(32, 64)
+        self.maxpool2 = nn.MaxPool2d(2)
 
-        # First residual block: 16->32 channels
-        self.res1 = ResBlock(16, 32)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=2)
+        self.res2 = ResBlock(64, 128)
+        self.maxpool3 = nn.MaxPool2d(2)
 
-        # Second residual block: 32->48 channels
-        self.res2 = ResBlock(32, 48)
-        self.maxpool3 = nn.MaxPool2d(kernel_size=2)
-
-        # Adjusted fully connected layer dimensions
-        self.fc1 = nn.Linear(10560, 192)  # Adjust based on input size
-        self.dropout = nn.Dropout(0.4)
-        self.fc2 = nn.Linear(192, num_actions)
+        # After these layers, the feature map is (128, 22, 40) from a 640x360 input.
+        flat_size = 128 * 22 * 40
+        self.fc1 = nn.Linear(flat_size, 1024)
 
     def forward(self, x):
         x = torch.relu(self.bn1(self.conv1(x)))
@@ -99,13 +79,10 @@ class SimpleCNN(nn.Module):
         x = self.maxpool3(x)
 
         x = x.view(x.size(0), -1)
-        x = torch.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
+        x = self.fc1(x)
         return x
 
-
-model = SimpleCNN(num_actions=10).to("cuda" if torch.cuda.is_available() else "cpu").eval()
+model = SimpleCNN().to("cuda" if torch.cuda.is_available() else "cpu").eval()
 
 # Forward pass through the model
 def process_image(img):
@@ -115,7 +92,7 @@ def process_image(img):
         output = model(img)
 
     # For visualization, convert output tensor back to NumPy (if needed)
-    output_np = output.squeeze(0).numpy().to("cpu")
+    output_np = output.squeeze(0).to("cpu").numpy()
     return output_np
 
 # Instantiate and evaluate the optimized CNN model
@@ -134,7 +111,6 @@ def grab_screen(p_input):
         # Send the image to the input pipe
         p_input.send(img)
 
-
 def model_processing(p_output):
     # Create a single window for display
     # cv2.namedWindow("Processed Image", cv2.WINDOW_NORMAL)
@@ -142,7 +118,7 @@ def model_processing(p_output):
     while True:
         # Receive image from pipe
         img = p_output.recv()
-        img.to("cuda" if torch.cuda.is_available() else "cpu")
+        img = img.to("cuda" if torch.cuda.is_available() else "cpu")
         # Measure the start time
         start_time = time.time()
 
@@ -156,7 +132,7 @@ def model_processing(p_output):
         time_taken = end_time - start_time
 
         # Calculate frames per second (FPS)
-        fps = 1 / time_taken
+        fps = 1 / time_taken if time_taken > 0 else 1/0.001
 
         print(f"Time taken to process one frame: {time_taken:.4f} seconds")
         print(f"Frames per second (FPS): {fps:.2f}")
@@ -165,7 +141,6 @@ def model_processing(p_output):
         # cv2.imshow("Processed Image", processed_img)
         # if cv2.waitKey(1) & 0xFF == ord('q'):
         #     break
-
 
 if __name__ == "__main__":
     # Set up pipes for multiprocessing
