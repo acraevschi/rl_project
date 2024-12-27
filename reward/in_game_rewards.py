@@ -90,8 +90,8 @@ def get_population(image):
         print(f"Error processing image: {str(e)}")
         return None
     
-# doesn't work perfectly, Figure_1 only returns the population, not the growth; Figure_4 return positive growth, but should be negative
-get_population(cv2.imread("reward/scrns_test/Figure_4.png", cv2.IMREAD_UNCHANGED)) 
+# doesn't work perfectly, Figure_1 only returns the population, not the growth; Figure_4 return positive growth, but should be negative; Figure_6 returns the population, but not the growth
+get_population(cv2.imread("reward/scrns_test/Figure_6.png", cv2.IMREAD_UNCHANGED)) 
 
 def extract_pop_happiness(cropped_img):
     """
