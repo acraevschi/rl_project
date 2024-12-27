@@ -3,26 +3,25 @@ WIDTH, HEIGHT = ORIGINAL_RESOLUTION
 
 MONITOR_CONFIG = {"top": 0, "left": 0, "width": WIDTH, "height": HEIGHT}
 
-RESCALED_WIDTH = int(WIDTH / 6)
-RESCALED_HEIGHT = int(HEIGHT / 6)
+RESCALED_WIDTH = 320
+RESCALED_HEIGHT = 180
 
 INPUT_SHAPE = (3, RESCALED_HEIGHT, RESCALED_WIDTH)
 
-NUM_ACTIONS = 10
+NUM_ACTIONS = 10 
 
-# Coordinates for cropping the health bar, e button presses, and so on, coordinates: (x1, y1, x2, y2)
-HEALTH_BAR_CROP = (
-    57,
-    -73,
-    357,
-    -53,
+# Coordinates for cropping the rewards bars: happiness and economy (based on 1080p resolution)
+### Simply reshape the screenshot to 1080p each time before cropping
+HAPPY_BAR = (
+    1240,
+    -40,
+    1525,
+    -5,
 )
 
-center = WIDTH // 2
-
-E_BUTTON_CROP = (
-    center - 125,
-    -90,
-    center + 125,
-    -45,
+ECON_BAR = (
+    960,
+    -40,
+    1215,
+    -5,
 )
