@@ -21,3 +21,5 @@ This project aims to train a deep reinforcement learning (DRL) model to play Cit
 - **Game State Processing:** Refining how frames and actions interact with the model.
 
 The plan is to record my own actions and screen to create some training data for the model before actually launching it train on its own actions. Despite better performance of agents without inductive biases, I don't have the opportunity of launching multiple simultaneous game sessions at once for the model to learn to play within a reasonable time-frame. 
+
+TODO: Try to fine-tune [OmniParser](https://huggingface.co/microsoft/OmniParser-v2.0) instead of the classical RL.
